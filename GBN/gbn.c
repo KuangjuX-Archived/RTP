@@ -22,7 +22,7 @@
 /* to layer 5 via the students transport level protocol entities.         */
 struct msg {
   char data[20];
-  };
+};
 
 /* a packet is the data unit passed from layer 4 (students code) to layer */
 /* 3 (teachers code).  Note the pre-defined packet structure, which all   */
@@ -43,7 +43,7 @@ struct pkt {
 A_output(message)
   struct msg message;
 {
-
+  char message[20];
 }
 
 B_output(message)  /* need be completed only for extra credit */

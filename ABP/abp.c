@@ -32,7 +32,7 @@ struct pkt {
    int acknum;
    int checksum;
    char payload[20];
-    };
+};
 
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 
@@ -43,20 +43,26 @@ struct pkt {
 A_output(message)
   struct msg message;
 {
+  struct pkt *packet;
+  strcpy(packet->payload, message.data);
 
+  // send packet to layer3
+  tolayer3(0, packet);
 }
 
 B_output(message)  /* need be completed only for extra credit */
   struct msg message;
 {
-
+  
 }
 
 /* called from layer 3, when a packet arrives for layer 4 */
 A_input(packet)
   struct pkt packet;
 {
-
+  struct msg *message;
+  strcpy(message->data, packet.payload);
+  tolayer5(1, message);
 }
 
 /* called when A's timer goes off */
@@ -78,6 +84,9 @@ A_init()
 B_input(packet)
   struct pkt packet;
 {
+  struct msg *message;
+  strcpy(message->data, packet.payload);
+  tolayer5(1, message);
 }
 
 /* called when B's timer goes off */
@@ -89,6 +98,7 @@ B_timerinterrupt()
 /* entity B routines are called. You can use it to do any initialization */
 B_init()
 {
+
 }
 
 
