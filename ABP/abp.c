@@ -37,14 +37,24 @@ struct pkt {
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 
 
+int status_a;//The status of A in the FSM in Page 144, 0 for waiting for called from layer 5(0), and 1, 2, 3 clockwise afterwards
+//is initialized to 0 in A_init()
+struct pkt saved_pkt;
+int status_b;//The status of B in the FSM, 0 and 1 indicating different state
+
 
 
 /* called from layer 5, passed the data to be sent to other side */
 A_output(message)
   struct msg message;
 {
-  struct pkt *packet;
-  strcpy(packet->payload, message.data);
+  struct pkt packet;
+  strcpy(packet.payload, message.data);
+
+  // to set checksum
+  for(int i=0; i<20; i++) {
+    packet.checksum += packet.payload[i];
+  }
 
   // send packet to layer3
   tolayer3(0, packet);
@@ -60,8 +70,18 @@ B_output(message)  /* need be completed only for extra credit */
 A_input(packet)
   struct pkt packet;
 {
-  struct msg *message;
-  strcpy(message->data, packet.payload);
+  // examine checksum
+  int checksum = 0;
+  for(int i=0; i<20; i++){
+    checksum += packet.payload[i];
+  }
+
+  if (checksum != packet.checksum) {
+    // TODO: checksum fail, data corruption
+  }
+
+  struct msg message;
+  strcpy(message.data, packet.payload);
   tolayer5(1, message);
 }
 
@@ -75,6 +95,7 @@ A_timerinterrupt()
 /* entity A routines are called. You can use it to do any initialization */
 A_init()
 {
+  status_a = 0;
 }
 
 
@@ -84,8 +105,8 @@ A_init()
 B_input(packet)
   struct pkt packet;
 {
-  struct msg *message;
-  strcpy(message->data, packet.payload);
+  struct msg message;
+  strcpy(message.data, packet.payload);
   tolayer5(1, message);
 }
 
@@ -98,7 +119,7 @@ B_timerinterrupt()
 /* entity B routines are called. You can use it to do any initialization */
 B_init()
 {
-
+  status_b = 0;
 }
 
 
@@ -144,8 +165,8 @@ int TRACE = 1;             /* for my debugging */
 int nsim = 0;              /* number of messages from 5 to 4 so far */ 
 int nsimmax = 0;           /* number of msgs to generate, then stop */
 float time = 0.000;
-float lossprob;            /* probability that a packet is dropped  */
-float corruptprob;         /* probability that one bit is packet is flipped */
+float lossprob = 0.000;            /* probability that a packet is dropped  */
+float corruptprob = 0.000;         /* probability that one bit is packet is flipped */
 float lambda;              /* arrival rate of messages from layer 5 */   
 int   ntolayer3;           /* number sent into layer 3 */
 int   nlost;               /* number lost in media */
