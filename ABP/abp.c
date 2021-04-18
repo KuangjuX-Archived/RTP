@@ -27,8 +27,10 @@ struct msg {
 /* a packet is the data unit passed from layer 4 (students code) to layer */
 /* 3 (teachers code).  Note the pre-defined packet structure, which all   */
 /* students must follow. */
-#define NAK 0;
-#define ACK 1;
+#define NAK ((int)0)
+#define ACK ((int)1)
+#define A ((int)0)
+#define B ((int)1)
 struct pkt {
    int seqnum;
    int acknum;
@@ -38,11 +40,16 @@ struct pkt {
 
 /********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
 
+// The status of A in the FSM in Page 144, 0 for waiting for called from layer 5(0), and 1, 2, 3 clockwise afterwards
+// is initialized to 0 in A_init()
+int status_a;
 
-int status_a;//The status of A in the FSM in Page 144, 0 for waiting for called from layer 5(0), and 1, 2, 3 clockwise afterwards
-//is initialized to 0 in A_init()
+// save the send packet to resend
 struct pkt saved_pkt;
-int status_b;//The status of B in the FSM, 0 and 1 indicating different state
+
+// The status of B in the FSM, 0 and 1 indicating different state
+// status_b indicate of the seqnum which has been success to receive.
+int status_b;
 
 
 
@@ -52,12 +59,27 @@ A_output(message)
 {
   struct pkt packet;
   strcpy(packet.payload, message.data);
+  strcpy(saved_pkt, message.data);
 
+  int send_seqnum = (status_a + 1)%2;
+
+  // set seqnum
+  packet.seqnum = send_seqnum;
+  saved_pkt.seqnum = send_seqnum;
+
+  // set ack
+  packet.acknum = ACK;
+  saved_pkt.acknum = ACK;
 
   // to set checksum
   for(int i=0; i<20; i++) {
     packet.checksum += packet.payload[i];
+    saved_pkt.checksum += packet.payload[i];
   }
+  packet.checksum += packet.seqnum;
+  packet.checksum += packet.acknum;
+  saved_pkt.checksum += saved_pkt.seqnum;
+  saved_pkt.checksum += saved_pkt.acknum;
 
   // send packet to layer3
   tolayer3(0, packet);
@@ -78,14 +100,20 @@ A_input(packet)
   for(int i=0; i<20; i++){
     checksum += packet.payload[i];
   }
+  checksum += packet.seqnum;
+  checksum += packet.acknum;
 
-  if (checksum != packet.checksum) {
-    // TODO: checksum fail, data corruption
-  }
+  int expected_seqnum = (status_a + 1)%2;
+
+  if (checksum != packet.checksum 
+  || expected_seqnum != packet.seqnum) {
+    // corruption data or wrong order
+      tolayer3(A, saved_pkt);
+    }
 
   struct msg message;
   strcpy(message.data, packet.payload);
-  tolayer5(1, message);
+  tolayer5(B, message);
 }
 
 /* called when A's timer goes off */
@@ -109,21 +137,40 @@ B_input(packet)
   struct pkt packet;
 {
   struct msg message;
+  struct pkt reback_packet;
   int checksum = 0;
+
+  // examine checksum
   for(int i=0; i<20; i++) {
     checksum += packet.payload[i];
   }
-  
-  if (checksum != packet.checksum) {
-    // data corruption
-    struct pkt reback_packet;
-    reback_packet.acknum = NAK;
-    reback_packet.seqnum = packet.seqnum;
-    tolayer3(reback_packet);
+  checksum += packet.seqnum;
+  checksum += packet.acknum;
+
+  int expected_seqnum = (status_b + 1)%2;  
+
+  if (checksum != packet.checksum || 
+    packet.seqnum != expected_seqnum ) {
+    // data corruptionn
+    // wrong order
+    // expect to get correct packet.
+    // send ACK to A.
+    reback_packet.acknum = ACK;
+    reback_packet.seqnum = status_b;
+    tolayer3(B, reback_packet);  
   }
 
   strcpy(message.data, packet.payload);
-  tolayer5(1, message);
+
+  // NO problem, send ACK to A.
+  reback_packet.seqnum = packet.seqnum;
+  reback_packet.acknum = ACK;
+
+  // tranfer B status to expect the other seqnum.
+  status_b = !status_b;
+
+  tolayer3(B, reback_packet);
+  tolayer5(B, message);
 }
 
 /* called when B's timer goes off */

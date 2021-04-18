@@ -8,7 +8,7 @@ build:
 	@gcc -o ${EXEC} ${SRC}
 
 run:
-	@./${EXEC}
+	@make build && ./${EXEC}
 
 clean:
 	@rm -rf ${ALL}
