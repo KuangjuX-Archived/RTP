@@ -1,5 +1,39 @@
 #include <stdio.h>
 
+
+struct event {
+   float evtime;           /* event time */
+   int evtype;             /* event type code */
+   int eventity;           /* entity where event occurs */
+   struct pkt *pktptr;     /* ptr to packet (if any) assoc w/ this event */
+   struct event *prev;
+   struct event *next;
+ };
+struct event *evlist = NULL;   /* the event list */
+
+/* possible events: */
+#define  TIMER_INTERRUPT 0  
+#define  FROM_LAYER5     1
+#define  FROM_LAYER3     2
+
+#define  OFF             0
+#define  ON              1
+#define   A    0
+#define   B    1
+
+
+
+int TRACE = 1;             /* for my debugging */
+int nsim = 0;              /* number of messages from 5 to 4 so far */ 
+int nsimmax = 0;           /* number of msgs to generate, then stop */
+float time = 0.000;
+float lossprob = 0.000;            /* probability that a packet is dropped  */
+float corruptprob = 0.000;         /* probability that one bit is packet is flipped */
+float lambda;              /* arrival rate of messages from layer 5 */   
+int   ntolayer3;           /* number sent into layer 3 */
+int   nlost;               /* number lost in media */
+int ncorrupt;              /* number corrupted by media*/
+
 /* ******************************************************************
  ALTERNATING BIT AND GO-BACK-N NETWORK EMULATOR: VERSION 1.1  J.F.Kurose
 
@@ -17,6 +51,12 @@
 #define BIDIRECTIONAL 0    /* change to 1 if you're doing extra credit */
                            /* and write a routine called B_output */
 
+// ACK & NCK
+#define NAK ((int)0)
+#define ACK ((int)1)   
+
+float timeout = 100.0;
+
 /* a "msg" is the data unit passed from layer 5 (teachers code) to layer  */
 /* 4 (students' code).  It contains the data (characters) to be delivered */
 /* to layer 5 via the students transport level protocol entities.         */
@@ -27,10 +67,6 @@ struct msg {
 /* a packet is the data unit passed from layer 4 (students code) to layer */
 /* 3 (teachers code).  Note the pre-defined packet structure, which all   */
 /* students must follow. */
-#define NAK ((int)0)
-#define ACK ((int)1)
-#define A ((int)0)
-#define B ((int)1)
 struct pkt {
    int seqnum;
    int acknum;
@@ -83,6 +119,7 @@ A_output(message)
 
   // send packet to layer3
   tolayer3(0, packet);
+  starttimer(A, timeout);
 }
 
 B_output(message)  /* need be completed only for extra credit */
@@ -107,19 +144,21 @@ A_input(packet)
 
   if (checksum != packet.checksum 
   || expected_seqnum != packet.seqnum) {
-    // corruption data or wrong order
+      // corruption data or wrong order
       tolayer3(A, saved_pkt);
     }
 
   struct msg message;
   strcpy(message.data, packet.payload);
   tolayer5(B, message);
+  status_a = !status_a;
 }
 
 /* called when A's timer goes off */
 A_timerinterrupt()
 {
-
+  tolayer3(A, saved_pkt);
+  starttimer(A, timeout);
 }  
 
 /* the following routine will be called once (only) before any other */
@@ -202,38 +241,6 @@ the emulator, you're welcome to look at the code - but again, you should have
 to, and you defeinitely should not have to modify
 ******************************************************************/
 
-struct event {
-   float evtime;           /* event time */
-   int evtype;             /* event type code */
-   int eventity;           /* entity where event occurs */
-   struct pkt *pktptr;     /* ptr to packet (if any) assoc w/ this event */
-   struct event *prev;
-   struct event *next;
- };
-struct event *evlist = NULL;   /* the event list */
-
-/* possible events: */
-#define  TIMER_INTERRUPT 0  
-#define  FROM_LAYER5     1
-#define  FROM_LAYER3     2
-
-#define  OFF             0
-#define  ON              1
-#define   A    0
-#define   B    1
-
-
-
-int TRACE = 1;             /* for my debugging */
-int nsim = 0;              /* number of messages from 5 to 4 so far */ 
-int nsimmax = 0;           /* number of msgs to generate, then stop */
-float time = 0.000;
-float lossprob = 0.000;            /* probability that a packet is dropped  */
-float corruptprob = 0.000;         /* probability that one bit is packet is flipped */
-float lambda;              /* arrival rate of messages from layer 5 */   
-int   ntolayer3;           /* number sent into layer 3 */
-int   nlost;               /* number lost in media */
-int ncorrupt;              /* number corrupted by media*/
 
 main()
 {
