@@ -27,6 +27,8 @@ struct msg {
 /* a packet is the data unit passed from layer 4 (students code) to layer */
 /* 3 (teachers code).  Note the pre-defined packet structure, which all   */
 /* students must follow. */
+#define NAK 0;
+#define ACK 1;
 struct pkt {
    int seqnum;
    int acknum;
@@ -50,6 +52,7 @@ A_output(message)
 {
   struct pkt packet;
   strcpy(packet.payload, message.data);
+
 
   // to set checksum
   for(int i=0; i<20; i++) {
@@ -106,6 +109,19 @@ B_input(packet)
   struct pkt packet;
 {
   struct msg message;
+  int checksum = 0;
+  for(int i=0; i<20; i++) {
+    checksum += packet.payload[i];
+  }
+  
+  if (checksum != packet.checksum) {
+    // data corruption
+    struct pkt reback_packet;
+    reback_packet.acknum = NAK;
+    reback_packet.seqnum = packet.seqnum;
+    tolayer3(reback_packet);
+  }
+
   strcpy(message.data, packet.payload);
   tolayer5(1, message);
 }
