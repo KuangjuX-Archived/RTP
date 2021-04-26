@@ -155,6 +155,12 @@ A_input(packet)
 
   base = packet.seqnum + 1;
 
+  if (base == nextseqnum) {
+    stoptimer();
+  } else {
+    starttimer();
+  }
+
 
 }
 
