@@ -14,100 +14,6 @@
      (although some can be lost).
 **********************************************************************/
 
-#define BIDIRECTIONAL 0    /* change to 1 if you're doing extra credit */
-                           /* and write a routine called B_output */
-
-/* a "msg" is the data unit passed from layer 5 (teachers code) to layer  */
-/* 4 (students' code).  It contains the data (characters) to be delivered */
-/* to layer 5 via the students transport level protocol entities.         */
-struct msg {
-  char data[20];
-};
-
-/* a packet is the data unit passed from layer 4 (students code) to layer */
-/* 3 (teachers code).  Note the pre-defined packet structure, which all   */
-/* students must follow. */
-struct pkt {
-   int seqnum;
-   int acknum;
-   int checksum;
-   char payload[20];
-    };
-
-/********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
-
-
-
-
-/* called from layer 5, passed the data to be sent to other side */
-A_output(message)
-  struct msg message;
-{
-  char message[20];
-}
-
-B_output(message)  /* need be completed only for extra credit */
-  struct msg message;
-{
-
-}
-
-/* called from layer 3, when a packet arrives for layer 4 */
-A_input(packet)
-  struct pkt packet;
-{
-
-}
-
-/* called when A's timer goes off */
-A_timerinterrupt()
-{
-
-}  
-
-/* the following routine will be called once (only) before any other */
-/* entity A routines are called. You can use it to do any initialization */
-A_init()
-{
-}
-
-
-/* Note that with simplex transfer from a-to-B, there is no B_output() */
-
-/* called from layer 3, when a packet arrives for layer 4 at B*/
-B_input(packet)
-  struct pkt packet;
-{
-}
-
-/* called when B's timer goes off */
-B_timerinterrupt()
-{
-}
-
-/* the following rouytine will be called once (only) before any other */
-/* entity B routines are called. You can use it to do any initialization */
-B_init()
-{
-}
-
-
-/*****************************************************************
-***************** NETWORK EMULATION CODE STARTS BELOW ***********
-The code below emulates the layer 3 and below network environment:
-  - emulates the tranmission and delivery (possibly with bit-level corruption
-    and packet loss) of packets across the layer 3/4 interface
-  - handles the starting/stopping of a timer, and generates timer
-    interrupts (resulting in calling students timer handler).
-  - generates message to be sent (passed from later 5 to 4)
-
-THERE IS NOT REASON THAT ANY STUDENT SHOULD HAVE TO READ OR UNDERSTAND
-THE CODE BELOW.  YOU SHOLD NOT TOUCH, OR REFERENCE (in your code) ANY
-OF THE DATA STRUCTURES BELOW.  If you're interested in how I designed
-the emulator, you're welcome to look at the code - but again, you should have
-to, and you defeinitely should not have to modify
-******************************************************************/
-
 struct event {
    float evtime;           /* event time */
    int evtype;             /* event type code */
@@ -140,6 +46,225 @@ float lambda;              /* arrival rate of messages from layer 5 */
 int   ntolayer3;           /* number sent into layer 3 */
 int   nlost;               /* number lost in media */
 int ncorrupt;              /* number corrupted by media*/
+
+#define BIDIRECTIONAL 0    /* change to 1 if you're doing extra credit */
+                           /* and write a routine called B_output */
+
+/* a "msg" is the data unit passed from layer 5 (teachers code) to layer  */
+/* 4 (students' code).  It contains the data (characters) to be delivered */
+/* to layer 5 via the students transport level protocol entities.         */
+struct msg {
+  char data[20];
+};
+
+/* a packet is the data unit passed from layer 4 (students code) to layer */
+/* 3 (teachers code).  Note the pre-defined packet structure, which all   */
+/* students must follow. */
+struct pkt {
+  //  // judge pkt is valid, only used in initialize.
+  //  int valid;
+   int seqnum;
+   int acknum;
+   int checksum;
+   char payload[20];
+};
+
+/********* STUDENTS WRITE THE NEXT SEVEN ROUTINES *********/
+
+#define ACK ((int)1)
+#define NAK ((int)0)
+
+// the size of windows
+const window_size = 5; 
+
+// status of a
+int base;
+
+int nextseqnum;
+
+// status of b, which means expected seqnum
+int status_b;
+
+// A(sender) save those packets 
+// which have been send but not be comfirmed.
+struct pkt a_saved_packet[window_size];
+
+// // B(receiver) save those packets 
+// // which have been received correctly.
+// struct pkt b_saved_packet[window_size];
+
+
+
+/* called from layer 5, passed the data to be sent to other side */
+A_output(message)
+  struct msg message;
+{
+  struct pkt send_packet;
+  strcpy(send_packet.payload, message.data);
+
+  send_packet.seqnum = nextseqnum;
+  send_packet.acknum = ACK;
+
+  // count checksum
+  for (int i = 0; i < 20; i++) {
+    send_packet.checksum += send_packet.payload[i];
+  }
+
+  send_packet.checksum += send_packet.seqnum;
+  send_packet.checksum += send_packet.acknum;
+
+  if (nextseqnum < base + window_size) {
+    a_saved_packet[nextseqnum % window_size] = send_packet;
+    tolayer3(A, send_packet);
+
+    if (base == nextseqnum) {
+      starttimer();
+      nextseqnum++;
+    }
+    return;
+  }else {
+    printf("nextseqnum is out of the limit of current window.\n");
+    return;
+  }
+}
+
+B_output(message)  /* need be completed only for extra credit */
+  struct msg message;
+{
+
+}
+
+/* called from layer 3, when a packet arrives for layer 4 */
+A_input(packet)
+  struct pkt packet;
+{
+  // examine packet is corrupt?
+  int checksum = 0;
+  for (int i = 0; i < 20; i++) {
+    checksum += packet.payload[i];
+  }
+  checksum += packet.acknum;
+  checksum += packet.seqnum;
+
+  if (checksum != packet.checksum) {
+    // corruption
+    // resend base packet
+    tolayer3(A, a_saved_packet[base % window_size]);
+    return;
+  }
+
+  base = packet.seqnum + 1;
+
+
+}
+
+/* called when A's timer goes off */
+A_timerinterrupt()
+{
+  starttimer();
+  for(int i = 0; i < window_size; i++) {
+    tolayer3(A, a_saved_packet[(base+i)%window_size]);
+  }
+}  
+
+/* the following routine will be called once (only) before any other */
+/* entity A routines are called. You can use it to do any initialization */
+A_init()
+{
+  base = 0;
+  nextseqnum = 0;
+}
+
+
+/* Note that with simplex transfer from a-to-B, there is no B_output() */
+
+/* called from layer 3, when a packet arrives for layer 4 at B*/
+B_input(packet)
+  struct pkt packet;
+{
+  struct pkt reback_packet;
+  struct msg message;
+  int checksum = 0;
+  // examine checksum
+  for (int i = 0; i < 20; i++) {
+    checksum += packet.payload[i];
+  }
+
+  checksum += packet.seqnum;
+  checksum += packet.acknum;
+
+  // packet corrupt
+  if (checksum != packet.checksum
+    || status_b != packet.seqnum ) {
+    // resend to A. 
+    reback_packet.acknum = ACK;
+    reback_packet.seqnum = status_b;
+    tolayer3(B, reback_packet);
+    return;
+  }
+
+  // // seqnum is not the expected seqnum
+  // if (status_b != packet.seqnum) {
+  //   // resend to A.
+  //   reback_packet.acknum = ACK;
+  //   reback_packet.acknum = status_b;
+  //   // save the packet 
+  //   for (int i = 0; i < window_size; i++) {
+  //     // find a invalid packet
+  //     if (b_saved_packet[i].valid == 0) {
+  //       b_saved_packet[i] = packet;
+  //       break;
+  //     }
+  //   }
+  // }
+
+
+
+  strcpy(message.data, packet.payload);
+  reback_packet.seqnum = packet.seqnum;
+  reback_packet.acknum = ACK;
+
+  // expected num++;
+  status_b++;
+
+  tolayer3(B, reback_packet);
+  tolayer5(B, message);
+
+}
+
+/* called when B's timer goes off */
+B_timerinterrupt()
+{
+}
+
+/* the following rouytine will be called once (only) before any other */
+/* entity B routines are called. You can use it to do any initialization */
+B_init()
+{
+  status_b = 0;
+  // for (int i = 0; i < window_size; i++) {
+  //   b_saved_packet[i].valid = 0;
+  // }
+}
+
+
+/*****************************************************************
+***************** NETWORK EMULATION CODE STARTS BELOW ***********
+The code below emulates the layer 3 and below network environment:
+  - emulates the tranmission and delivery (possibly with bit-level corruption
+    and packet loss) of packets across the layer 3/4 interface
+  - handles the starting/stopping of a timer, and generates timer
+    interrupts (resulting in calling students timer handler).
+  - generates message to be sent (passed from later 5 to 4)
+
+THERE IS NOT REASON THAT ANY STUDENT SHOULD HAVE TO READ OR UNDERSTAND
+THE CODE BELOW.  YOU SHOLD NOT TOUCH, OR REFERENCE (in your code) ANY
+OF THE DATA STRUCTURES BELOW.  If you're interested in how I designed
+the emulator, you're welcome to look at the code - but again, you should have
+to, and you defeinitely should not have to modify
+******************************************************************/
+
+
 
 main()
 {

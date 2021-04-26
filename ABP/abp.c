@@ -95,7 +95,7 @@ A_output(message)
 {
   struct pkt packet;
   strcpy(packet.payload, message.data);
-  strcpy(saved_pkt, message.data);
+  strcpy(saved_pkt.payload, message.data);
 
   int send_seqnum = (status_a + 1)%2;
 
