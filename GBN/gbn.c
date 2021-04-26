@@ -168,8 +168,8 @@ A_input(packet)
 A_timerinterrupt()
 {
   starttimer();
-  for(int i = 0; i < window_size; i++) {
-    tolayer3(A, a_saved_packet[(base+i)%window_size]);
+  for(int i = base; i < nextseqnum; i++) {
+    tolayer3(A, a_saved_packet[i % window_size]);
   }
 }  
 
