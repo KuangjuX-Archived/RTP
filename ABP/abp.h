@@ -20,7 +20,7 @@ struct event {
 
 int TRACE = 10;             /* for my debugging */
 int nsim = 0;              /* number of messages from 5 to 4 so far */ 
-int nsimmax = 10;           /* number of msgs to generate, then stop */
+int nsimmax = 5;           /* number of msgs to generate, then stop */
 float time = 0.000;
 float lossprob = 0.000;            /* probability that a packet is dropped  */
 float corruptprob = 0.000;         /* probability that one bit is packet is flipped */
@@ -89,3 +89,10 @@ void stoptimer(int AorB);
 void starttimer(int AorB,float increment);
 void tolayer3(int AorB, struct pkt packet);
 void tolayer5(int AorB, char datasent[20]);
+
+void init_packet(struct pkt* packet) {
+    for(int i=0; i<20; i++) packet->payload[i] = 0;
+    packet->acknum = 0;
+    packet->checksum = 0;
+    packet->seqnum = 0;
+}

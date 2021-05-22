@@ -26,6 +26,7 @@ void A_output(struct msg message)
 {
   printf("A Output.\n");
   struct pkt packet;
+  init_packet(&packet);
   strcpy(packet.payload, message.data);
   strcpy(saved_pkt.payload, message.data);
 
@@ -48,6 +49,8 @@ void A_output(struct msg message)
   packet.checksum += packet.acknum;
   saved_pkt.checksum += saved_pkt.seqnum;
   saved_pkt.checksum += saved_pkt.acknum;
+
+  printf("Packet Checksum: %d.\n", packet.checksum);
 
   // send packet to layer3
   tolayer3(A, packet);
@@ -111,6 +114,7 @@ void B_input(struct pkt packet)
   printf("        Receive Packet From A.\n");
   struct msg message;
   struct pkt reback_packet;
+  init_packet(&reback_packet);
   int checksum = 0;
 
   // examine checksum
@@ -307,6 +311,7 @@ void init()                         /* initialize the simulator */
    ntolayer5 = 0;
    nlost = 0;
    ncorrupt = 0;
+   lambda = 1.0;
 
    time=0.0;                    /* initialize time to 0.0 */
    generate_next_arrival();     /* initialize event list */
