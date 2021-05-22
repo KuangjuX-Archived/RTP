@@ -20,7 +20,7 @@ struct event {
 
 int TRACE = 10;             /* for my debugging */
 int nsim = 0;              /* number of messages from 5 to 4 so far */ 
-int nsimmax = 5;           /* number of msgs to generate, then stop */
+int nsimmax = 10;           /* number of msgs to generate, then stop */
 float time = 0.000;
 float lossprob = 0.000;            /* probability that a packet is dropped  */
 float corruptprob = 0.000;         /* probability that one bit is packet is flipped */

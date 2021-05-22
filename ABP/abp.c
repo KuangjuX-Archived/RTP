@@ -192,6 +192,7 @@ int main()
    B_init();
    
    while (1) {
+        printevlist();
         eventptr = evlist;            /* get next event to simulate */
         if (eventptr==NULL)
            goto terminate;
@@ -342,7 +343,8 @@ void generate_next_arrival()
    x = lambda*jimsrand()*2;  /* x is uniform on [0,2*lambda] */
                              /* having mean of lambda        */
    evptr = (struct event *)malloc(sizeof(struct event));
-   evptr->evtime =  time + x;
+  //  evptr->evtime =  time + x;
+   evptr->evtime = time + x;
    evptr->evtype =  FROM_LAYER5;
    if (BIDIRECTIONAL && (jimsrand()>0.5) )
       evptr->eventity = B;
@@ -358,7 +360,8 @@ void insertevent(struct event *p)
 
    if (TRACE>2) {
       printf("            INSERTEVENT: time is %lf\n",time);
-      printf("            INSERTEVENT: future time will be %lf\n",p->evtime); 
+      printf("            INSERTEVENT: future time will be %lf\n",p->evtime);
+      printf("\033[40;31m           Insert Event: %d\033[0m\n", p->evtype);
   }
 
    q = evlist;     /* q points to header of list in which p struct inserted */
@@ -395,7 +398,7 @@ void printevlist()
   int i;
   printf("--------------\nEvent List Follows:\n");
   for(q = evlist; q!=NULL; q=q->next) {
-    printf("Event time: %f, type: %d entity: %d\n",q->evtime,q->evtype,q->eventity);
+    printf("\033[47;31mEvent time: %f, type: %d entity: %d\033[0m\n",q->evtime,q->evtype,q->eventity);
   }
   printf("--------------\n");
 }
@@ -504,7 +507,7 @@ void tolayer3(int AorB, struct pkt packet)
   evptr->evtype =  FROM_LAYER3;   /* packet will pop out from layer3 */
   evptr->eventity = (AorB+1) % 2; /* event occurs at other entity */
   evptr->pktptr = mypktptr;       /* save ptr to my copy of packet */
-  
+
 /* finally, compute the arrival time of packet at the other end.
    medium can not reorder, so make sure packet arrives between 1 and 10
    time units after the latest arrival time of packets
@@ -515,6 +518,7 @@ void tolayer3(int AorB, struct pkt packet)
     if ( (q->evtype==FROM_LAYER3  && q->eventity==evptr->eventity) ) 
       lastime = q->evtime;
  evptr->evtime =  lastime + 1 + 9*jimsrand();
+  // evptr->evtime = 1.0;
  
 
 
