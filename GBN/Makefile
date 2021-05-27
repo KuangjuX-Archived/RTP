@@ -1,14 +1,13 @@
-SRC = gbn.c
-EXEC = gbn
-ALL = ${EXEC}
+CC			:= gcc
+CFLAGS		:= -std=c11
 
 .PHONY: build run clean 
 
 build:
-	@gcc -o ${EXEC} ${SRC}
+	@$(CC) -o gbn gbn.c $(CFLAGS)
 
-run:
-	@make build && ./${EXEC}
+run: build
+	@./gbn
 
 clean:
-	@rm -rf ${ALL}
+	@rm -rf gbn

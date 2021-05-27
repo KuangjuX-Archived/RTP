@@ -196,7 +196,7 @@ int main()
    B_init();
    
    while (1) {
-        printevlist();
+        // printevlist();
         eventptr = evlist;            /* get next event to simulate */
         if (eventptr==NULL)
            goto terminate;
@@ -311,7 +311,7 @@ void init()                         /* initialize the simulator */
    ntolayer5 = 0;
    nlost = 0;
    ncorrupt = 0;
-   lambda = 1.0;
+   lambda = 20.0;
 
    time=0.0;                    /* initialize time to 0.0 */
    generate_next_arrival();     /* initialize event list */
