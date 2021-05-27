@@ -125,6 +125,11 @@ void B_input(struct pkt packet)
   checksum += packet.acknum;
 
   int expected_seqnum = (status_b + 1)%2;  
+  // int expected_seqnum = status_b;
+
+  if(packet.seqnum != expected_seqnum) {
+    printf("Wrong Order Packet.\n");
+  }
 
   if (checksum != packet.checksum || 
     packet.seqnum != expected_seqnum ) {
@@ -150,6 +155,7 @@ void B_input(struct pkt packet)
 
   tolayer3(B, reback_packet);
   tolayer5(B, message.data);
+  return;
 }
 
 /* called when B's timer goes off */

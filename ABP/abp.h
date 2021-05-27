@@ -20,10 +20,10 @@ struct event {
 
 int TRACE = 10;             /* for my debugging */
 int nsim = 0;              /* number of messages from 5 to 4 so far */ 
-int nsimmax = 2;           /* number of msgs to generate, then stop */
+int nsimmax = 10;           /* number of msgs to generate, then stop */
 float time = 0.000;
 float lossprob = 0.000;            /* probability that a packet is dropped  */
-float corruptprob = 0.000;         /* probability that one bit is packet is flipped */
+float corruptprob = 0.500;         /* probability that one bit is packet is flipped */
 float lambda;              /* arrival rate of messages from layer 5 */   
 int   ntolayer3;           /* number sent into layer 3 */
 int   ntolayer5;            /* number sent into layer 5*/

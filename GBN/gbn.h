@@ -33,16 +33,16 @@ struct event {
 
 
 
-int TRACE = 1;             /* for my debugging */
+int TRACE = 0;             /* for my debugging */
 int nsim = 0;              /* number of messages from 5 to 4 so far */ 
-int nsimmax = 0;           /* number of msgs to generate, then stop */
-float time = 0.000;
-float lossprob;            /* probability that a packet is dropped  */
-float corruptprob;         /* probability that one bit is packet is flipped */
-float lambda;              /* arrival rate of messages from layer 5 */   
+int nsimmax = 10;           /* number of msgs to generate, then stop */
+float time = 10.000;
+float lossprob = 0.000;            /* probability that a packet is dropped  */
+float corruptprob = 0.000;         /* probability that one bit is packet is flipped */
+float lambda = 20.0;              /* arrival rate of messages from layer 5 */   
 int   ntolayer3;           /* number sent into layer 3 */
-int   nlost;               /* number lost in media */
-int ncorrupt;              /* number corrupted by media*/
+int   nlost = 0.000;               /* number lost in media */
+int ncorrupt = 0.500;              /* number corrupted by media*/
 
 #define BIDIRECTIONAL 0    /* change to 1 if you're doing extra credit */
                            /* and write a routine called B_output */
@@ -102,3 +102,10 @@ void stoptimer(int AorB);
 void starttimer(int AorB, float increment);
 void tolayer3(int AorB, struct pkt packet);
 void tolayer5(int AorB, char datasent[20]);
+
+void init_packet(struct pkt* packet) {
+    for(int i=0; i<20; i++) packet->payload[i] = 0;
+    packet->acknum = 0;
+    packet->checksum = 0;
+    packet->seqnum = 0;
+}

@@ -14,7 +14,14 @@ struct pkt a_saved_packet[WINDOW_SIZE];
 /* called from layer 5, passed the data to be sent to other side */
 void A_output(struct msg message)
 {
+  printf("A send packet to B.\n\n");
+  printf("Message: ");
+  for (int i=0; i<20; i++)
+        printf("%c",message.data[i]);
+  printf("\n\n");
+
   struct pkt send_packet;
+  init_packet(&send_packet);
   strcpy(send_packet.payload, message.data);
 
   send_packet.seqnum = nextseqnum;
@@ -28,17 +35,21 @@ void A_output(struct msg message)
   send_packet.checksum += send_packet.seqnum;
   send_packet.checksum += send_packet.acknum;
 
+  printf("nextseq: %d\n", nextseqnum);
+  printf("base: %d\n", base);
+  printf("the end of window: %d\n", base + WINDOW_SIZE);
   if (nextseqnum < base + WINDOW_SIZE) {
     a_saved_packet[nextseqnum % WINDOW_SIZE] = send_packet;
     tolayer3(A, send_packet);
 
     if (base == nextseqnum) {
       starttimer(A, 12.0);
-      nextseqnum++;
     }
+    nextseqnum++;
     return;
   }else {
-    printf("nextseqnum is out of the limit of current window.\n");
+    // refuse data
+    printf("nextseqnum is out of the limit of current window.\n\n");
     return;
   }
 }
@@ -51,17 +62,27 @@ void B_output(struct msg message)  /* need be completed only for extra credit */
 /* called from layer 3, when a packet arrives for layer 4 */
 void A_input(struct pkt packet)
 {
+  printf("A receive packet from B.\n\n");
+  printf("A_input(): seq: %d, ack %d, check: %d ", packet.seqnum,
+	  packet.acknum, packet.checksum);
+
+  for (int i=0; i<20; i++)
+      printf("%c", packet.payload[i]);
+  printf("\n\n");
+
   // examine packet is corrupt?
   int checksum = 0;
-  for (int i = 0; i < 20; i++) {
-    checksum += packet.payload[i];
-  }
+  // for (int i = 0; i < 20; i++) {
+  //   checksum += packet.payload[i];
+  // }
   checksum += packet.acknum;
   checksum += packet.seqnum;
 
   if (checksum != packet.checksum) {
     // corruption
     // resend base packet
+    printf("A receive corrupted or wrong order packet.\n");
+    printf("A resend packet to B.\n");
     tolayer3(A, a_saved_packet[base % WINDOW_SIZE]);
     return;
   }
@@ -102,6 +123,7 @@ void B_input(struct pkt packet)
 {
   struct pkt reback_packet;
   struct msg message;
+  init_packet(&reback_packet);
   int checksum = 0;
   // examine checksum
   for (int i = 0; i < 20; i++) {
@@ -121,26 +143,10 @@ void B_input(struct pkt packet)
     return;
   }
 
-  // // seqnum is not the expected seqnum
-  // if (status_b != packet.seqnum) {
-  //   // resend to A.
-  //   reback_packet.acknum = ACK;
-  //   reback_packet.acknum = status_b;
-  //   // save the packet 
-  //   for (int i = 0; i < window_size; i++) {
-  //     // find a invalid packet
-  //     if (b_saved_packet[i].valid == 0) {
-  //       b_saved_packet[i] = packet;
-  //       break;
-  //     }
-  //   }
-  // }
-
-
-
   strcpy(message.data, packet.payload);
   reback_packet.seqnum = packet.seqnum;
   reback_packet.acknum = ACK;
+  reback_packet.checksum = reback_packet.seqnum + reback_packet.acknum;
 
   // expected num++;
   status_b++;
@@ -273,17 +279,17 @@ void init()                         /* initialize the simulator */
   float jimsrand();
   
   
-   printf("-----  Stop and Wait Network Simulator Version 1.1 -------- \n\n");
-   printf("Enter the number of messages to simulate: ");
-   scanf("%d",&nsimmax);
-   printf("Enter  packet loss probability [enter 0.0 for no loss]:");
-   scanf("%f",&lossprob);
-   printf("Enter packet corruption probability [0.0 for no corruption]:");
-   scanf("%f",&corruptprob);
-   printf("Enter average time between messages from sender's layer5 [ > 0.0]:");
-   scanf("%f",&lambda);
-   printf("Enter TRACE:");
-   scanf("%d",&TRACE);
+  //  printf("-----  Stop and Wait Network Simulator Version 1.1 -------- \n\n");
+  //  printf("Enter the number of messages to simulate: ");
+  //  scanf("%d",&nsimmax);
+  //  printf("Enter  packet loss probability [enter 0.0 for no loss]:");
+  //  scanf("%f",&lossprob);
+  //  printf("Enter packet corruption probability [0.0 for no corruption]:");
+  //  scanf("%f",&corruptprob);
+  //  printf("Enter average time between messages from sender's layer5 [ > 0.0]:");
+  //  scanf("%f",&lambda);
+  //  printf("Enter TRACE:");
+  //  scanf("%d",&TRACE);
 
    srand(9999);              /* init random number generator */
    sum = 0.0;                /* test random number generator for students */
@@ -352,7 +358,7 @@ void insertevent(struct event *p)
    if (TRACE>2) {
       printf("            INSERTEVENT: time is %lf\n",time);
       printf("            INSERTEVENT: future time will be %lf\n",p->evtime); 
-      }
+  }
    q = evlist;     /* q points to header of list in which p struct inserted */
    if (q==NULL) {   /* list is empty */
         evlist=p;
@@ -467,8 +473,8 @@ void tolayer3(int AorB, struct pkt packet)
  /* simulate losses: */
  if (jimsrand() < lossprob)  {
       nlost++;
-      if (TRACE>0)    
-	printf("          TOLAYER3: packet being lost\n");
+          
+	    printf("          TOLAYER3: packet being lost\n");
       return;
     }  
 
@@ -527,11 +533,11 @@ void tolayer3(int AorB, struct pkt packet)
 void tolayer5(int AorB, char datasent[20])
 {
   int i;  
-  if (TRACE>2) {
-     printf("          TOLAYER5: data received: ");
-     for (i=0; i<20; i++)  
-        printf("%c",datasent[i]);
-     printf("\n");
-   }
+ 
+  printf("          TOLAYER5: data received: ");
+  for (i=0; i<20; i++)  
+      printf("%c",datasent[i]);
+  printf("\n");
+   
   
 }
